@@ -1,6 +1,7 @@
 import random
-from fe.access import book
+from fe.access.book import BookTable
 from fe.access.new_seller import register_new_seller
+from be.model.database import getDatabase
 
 
 class GenBook:
@@ -18,15 +19,16 @@ class GenBook:
         self.buy_book_id_list = []
 
     def gen(self, non_exist_book_id: bool, low_stock_level, max_book_count: int = 100) -> (bool, []):
+
         self.__init_book_list__()
         ok = True
-        book_db = book.BookDB()
-        rows = book_db.get_book_count()
+        session = getDatabase()
+        rows = BookTable.get_book_count(session)
         start = 0
         if rows > max_book_count:
             start = random.randint(0, rows - max_book_count)
         size = random.randint(1, max_book_count)
-        books = book_db.get_book_info(start, size)
+        books = BookTable.get_book_info(session, start, size)
         book_id_exist = []
         book_id_stock_level = {}
         for bk in books:
@@ -54,4 +56,6 @@ class GenBook:
 
         for item in self.buy_book_info_list:
             self.buy_book_id_list.append((item[0].id, item[1]))
+
+        session.close()
         return ok, self.buy_book_id_list

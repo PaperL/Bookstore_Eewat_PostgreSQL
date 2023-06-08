@@ -1,5 +1,17 @@
 import sqlite3
-import pymongo
+import sqlalchemy
+from sqlalchemy_utils import drop_database, create_database
+from sqlalchemy.orm import session
+
+from be.model.database import getDatabaseSession, init_database
+from be.model.book import BookTable
+
+database_url = 'postgresql://postgres:123456@localhost:5432/bookstore'
+
+# Do not drop if run for the first time.
+drop_database(database_url)
+create_database(database_url)
+
 conn = sqlite3.connect('fe/data/book.db')
 cur = conn.cursor()
 cur.execute("SELECT * FROM book")
@@ -7,11 +19,7 @@ rows = cur.fetchall()
 cur.close()
 conn.close()
 
-client = pymongo.MongoClient ('localhost', 27017)
-client.drop_database("bookstore")
-db = client['bookstore']
-books = db['book']
-
+init_database()
 
 for row in rows:
     book = {
@@ -33,6 +41,36 @@ for row in rows:
         'tags': row[15],
         'picture': row[16]
     }
-    books.insert_one(book)
+    new_book = BookTable(
+        id=book['id'],
+        title=book['title'],
+        author=book['author'],
+        publisher=book['publisher'],
+        original_title=book['original_title'],
+        translator=book['translator'],
+        pub_year=book['pub_year'],
+        pages=book['pages'],
+        price=book['price'],
+        currency_unit=book['currency_unit'],
+        binding=book['binding'],
+        isbn=book['isbn'],
+        author_intro=book['author_intro'],
+        book_intro=book['book_intro'],
+        content=book['content'],
+        tags=book['tags'],
+        picture=book['picture']
+    )
+    session = getDatabaseSession()
+    session.add(new_book)
+    session.commit()
 
-client.close()
+session.close()
+
+# engine = sqlalchemy.create_engine(database_url)
+
+# # Get the list of table names
+# table_names = engine.table_names()
+
+# # Print all table names
+# for table_name in table_names:
+#     print(table_name)

@@ -4,9 +4,9 @@ from flask import Flask
 from flask import Blueprint
 from flask import request
 from be.view import auth
-from be.view import seller
-from be.view import buyer
-from be.view import search
+# from be.view import seller
+# from be.view import buyer
+# from be.view import search
 # from be.model.store import init_database
 from be.model.database import init_database
 
@@ -42,7 +42,7 @@ def be_run():
     app = Flask(__name__)
     app.register_blueprint(bp_shutdown)
     app.register_blueprint(auth.bp_auth)
-    app.register_blueprint(seller.bp_seller)
-    app.register_blueprint(buyer.bp_buyer)
-    app.register_blueprint(search.bp_search)
+    # app.register_blueprint(seller.bp_seller)
+    # app.register_blueprint(buyer.bp_buyer)
+    # app.register_blueprint(search.bp_search)
     app.run()
