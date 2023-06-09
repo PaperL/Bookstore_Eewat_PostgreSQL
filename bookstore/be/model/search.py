@@ -1,12 +1,8 @@
+from sqlalchemy import or_
 from be import conf
 import re
 import base64
-
-
-import re
-import base64
-from be import conf
-from be.model.book import BookTable
+from be.model.tables import BookTable, StoreBook
 from be.model.database import getDatabaseSession
 
 
@@ -31,9 +27,11 @@ class Search:
     def book_info(self, book_id: str, isbn: str):
         try:
             if book_id is not None:
-                book_info = getDatabaseSession().query(BookTable).filter_by(id=book_id).first()
+                with getDatabaseSession() as session:
+                    book_info = session.query(BookTable).filter_by(id=book_id).first()
             elif isbn is not None:
-                book_info = getDatabaseSession().query(BookTable).filter_by(isbn=isbn).first()
+                with getDatabaseSession() as session:
+                    book_info = session.query(BookTable).filter_by(isbn=isbn).first()
             else:
                 raise BaseException("book_id and isbn both are None")
         except Exception as e:
@@ -50,28 +48,25 @@ class Search:
         # Search term in books' `title`, `author`, `publisher`, `original_title`, `translator`, `tags`, `content` and return all searched books
         try:
             book_list = []
-            query = (
-                getDatabaseSession().query(BookTable)
-                .filter(
-                    BookTable.title.ilike(f"%{term}%")
-                    | BookTable.author.ilike(f"%{term}%")
-                    | BookTable.publisher.ilike(f"%{term}%")
-                    | BookTable.original_title.ilike(f"%{term}%")
-                    | BookTable.translator.ilike(f"%{term}%")
-                    | BookTable.tags.ilike(f"%{term}%")
-                    | BookTable.content.ilike(f"%{term}%")
-                )
-            )
-
-            if store_id is not None:
-                session = getDatabaseSession()
+            session = getDatabaseSession()
+            if not store_id:
                 query = (
-                    session.query(BookTable.id, BookTable.title, BookTable.author, BookTable.publisher, BookTable.original_title,
-                                  BookTable.translator, BookTable.pub_year, BookTable.price, BookTable.binding, BookTable.tags, BookTable.picture)
-                    .join(Store)
-                    .join(BookTable, Store.book_id == BookTable.id)
+                    session.query(BookTable)
                     .filter(
-                        Store.store_id == store_id,
+                        BookTable.title.ilike(f"%{term}%")
+                        | BookTable.author.ilike(f"%{term}%")
+                        | BookTable.publisher.ilike(f"%{term}%")
+                        | BookTable.original_title.ilike(f"%{term}%")
+                        | BookTable.translator.ilike(f"%{term}%")
+                        | BookTable.tags.ilike(f"%{term}%")
+                        | BookTable.content.ilike(f"%{term}%")
+                    )
+                )
+            else:
+                query = (
+                    session.query(BookTable)
+                    .filter(
+                        StoreBook.store_id == store_id,
                         or_(
                             BookTable.title.ilike(f'%{term}%'),
                             BookTable.author.ilike(f'%{term}%'),
@@ -82,8 +77,6 @@ class Search:
                             BookTable.content.ilike(f'%{term}%')
                         )
                     )
-                    # .offset(page_id * page_size)
-                    # .limit(page_size)
                 )
 
             total_results = query.count()
@@ -97,8 +90,9 @@ class Search:
             for row in results:
                 book = serializable(row)
                 book_list.append(book)
+            
+            session.close()
 
         except Exception as e:
             return 501, str(e)
-
         return 200, {"books": book_list, "total_results": total_results}

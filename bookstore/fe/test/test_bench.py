@@ -1,7 +1,9 @@
+from be.model.database import clearDatabaseSession
 from fe.bench.run import run_bench
 
 
 def test_bench():
+    clearDatabaseSession()
     try:
         run_bench()
     except Exception as e:

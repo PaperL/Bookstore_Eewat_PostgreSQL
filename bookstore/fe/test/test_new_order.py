@@ -37,7 +37,7 @@ class TestNewOrder:
     def test_non_exist_user_id(self):
         ok, buy_book_id_list = self.gen_book.gen(non_exist_book_id=False, low_stock_level=False)
         assert ok
-        self.buyer.user_id = self.buyer.user_id + "_x"
+        self.buyer.user_id = str(self.buyer.user_id) + "_x"
         code, _ = self.buyer.new_order(self.store_id, buy_book_id_list)
         assert code != 200
 

@@ -1,7 +1,7 @@
 import random
-from fe.access.book import BookTable
+from be.model.tables import BookTable
 from fe.access.new_seller import register_new_seller
-from be.model.database import getDatabase
+from be.model.database import getDatabaseSession
 
 
 class GenBook:
@@ -18,16 +18,16 @@ class GenBook:
         self.buy_book_info_list = []
         self.buy_book_id_list = []
 
-    def gen(self, non_exist_book_id: bool, low_stock_level, max_book_count: int = 100) -> (bool, []):
+    def gen(self, non_exist_book_id: bool, low_stock_level, max_book_count: int = 10) -> (bool, []):
 
         self.__init_book_list__()
         ok = True
-        session = getDatabase()
+        session = getDatabaseSession()
         rows = BookTable.get_book_count(session)
-        start = 0
+        start = 20
         if rows > max_book_count:
             start = random.randint(0, rows - max_book_count)
-        size = random.randint(1, max_book_count)
+        size = 3
         books = BookTable.get_book_info(session, start, size)
         book_id_exist = []
         book_id_stock_level = {}
@@ -35,27 +35,26 @@ class GenBook:
             if low_stock_level:
                 stock_level = random.randint(0, 100)
             else:
-                stock_level = random.randint(2, 100)
+                stock_level = random.randint(100, 1000)
             code = self.seller.add_book(self.store_id, stock_level, bk)
             assert code == 200
-            book_id_stock_level[bk.id] = stock_level
+            book_id_stock_level[str(bk.id)] = stock_level
             book_id_exist.append(bk)
 
         for bk in book_id_exist:
-            stock_level = book_id_stock_level[bk.id]
+            stock_level = book_id_stock_level[str(bk.id)]
             if stock_level > 1:
                 buy_num = random.randint(1, stock_level)
             else:
                 buy_num = 0
             # add a new pair
             if non_exist_book_id:
-                bk.id = bk.id + "_x"
+                bk.id = str(bk.id) + "_x"
             if low_stock_level:
                 buy_num = stock_level + 1
             self.buy_book_info_list.append((bk, buy_num))
 
         for item in self.buy_book_info_list:
-            self.buy_book_id_list.append((item[0].id, item[1]))
-
+            self.buy_book_id_list.append((str(item[0].id), item[1]))
         session.close()
         return ok, self.buy_book_id_list

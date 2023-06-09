@@ -4,13 +4,16 @@ from sqlalchemy_utils import drop_database, create_database
 from sqlalchemy.orm import session
 
 from be.model.database import getDatabaseSession, init_database
-from be.model.book import BookTable
+from be.model.tables import BookTable
 
 database_url = 'postgresql://postgres:123456@localhost:5432/bookstore'
 
 # Do not drop if run for the first time.
-drop_database(database_url)
-create_database(database_url)
+def flush_database():
+    drop_database(database_url)
+    create_database(database_url)
+
+flush_database()
 
 conn = sqlite3.connect('fe/data/book.db')
 cur = conn.cursor()

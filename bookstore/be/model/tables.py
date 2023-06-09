@@ -1,7 +1,8 @@
 import base64
 import random
-from sqlalchemy import Column, Integer, LargeBinary, Text
-from be.model.database import getDatabaseBase
+from sqlalchemy import Boolean, Column, Integer, LargeBinary, Text, DateTime
+from be.model.database import getDatabaseBase, getDatabaseSession
+from be.model.user import User
 from fe.access.book import Book
 
 
@@ -40,7 +41,7 @@ class BookTable(Base):
             BookTable.id).offset(start).limit(size)
         for row in results:
             book = Book()
-            book.id = row.id
+            book.id = str(row.id)
             book.title = row.title
             book.author = row.author
             book.publisher = row.publisher
@@ -70,3 +71,58 @@ class BookTable(Base):
             books.append(book)
 
         return books
+
+
+class StoreBook(Base):
+    __tablename__ = 'store'
+
+    store_id = Column(Text, primary_key=True)
+    book_id = Column(Text, primary_key=True)
+    book_info = Column(Text)
+    stock_level = Column(Integer)
+
+
+class UserStore(Base):
+    __tablename__ = 'user_store'
+
+    user_id = Column(Text, primary_key=True)
+    store_id = Column(Text, primary_key=True)
+
+
+class NewOrder(Base):
+    __tablename__ = 'new_order'
+
+    order_id = Column(Text, primary_key=True, unique=True, nullable=False)
+    user_id = Column(Text, nullable=False)
+    store_id = Column(Text, nullable=False)
+    order_time = Column(DateTime, nullable=False)
+    total_price = Column(Integer, nullable=False)
+    paid = Column(Boolean, nullable=False)
+    cancelled = Column(Boolean, nullable=False)
+    delivered = Column(Boolean, nullable=False)
+
+
+class NewOrderDetail(Base):
+    __tablename__ = 'new_order_detail'
+
+    order_id = Column(Text, primary_key=True, nullable=False)
+    book_id = Column(Text, primary_key=True, nullable=False)
+    count = Column(Integer, nullable=False)
+    price = Column(Integer, nullable=False)
+
+
+def user_id_exist(user_id) -> bool:
+    result = getDatabaseSession().query(User).filter(User.user_id == user_id).all()
+    return len(result) != 0
+
+
+def book_id_exist(store_id, book_id):
+    result = getDatabaseSession().query(StoreBook).filter(
+        StoreBook.store_id == store_id, StoreBook.book_id == str(book_id)).all()
+    return len(result) != 0
+
+
+def store_id_exist(store_id):
+    result = getDatabaseSession().query(UserStore).filter(
+        UserStore.store_id == store_id).all()
+    return len(result) != 0

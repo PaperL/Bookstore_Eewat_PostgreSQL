@@ -5,7 +5,7 @@ from typing import Tuple
 
 from psycopg2 import IntegrityError
 from be.model import error
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, String, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -45,11 +45,11 @@ Base = getDatabaseBase()
 class User(Base):
     __tablename__ = 'user'
 
-    user_id = Column(String, primary_key=True)
-    password = Column(String)
+    user_id = Column(Text, primary_key=True)
+    password = Column(Text)
     balance = Column(Integer)
-    token = Column(String)
-    terminal = Column(String)
+    token = Column(Text)
+    terminal = Column(Text)
 
     token_lifetime: int = 3600  # 3600 seconds
 
@@ -83,6 +83,7 @@ class User(Base):
 
             session.add(user)
             session.commit()
+            session.close()
         except IntegrityError as e:
             session.rollback()
             return error.error_exist_user_id(user_id)
@@ -90,8 +91,8 @@ class User(Base):
 
     def check_token(self, user_id: str, token: str) -> Tuple[int, str]:
         try:
-            session = getDatabaseSession()
-            user = session.query(User).filter_by(user_id=user_id).first()
+            with getDatabaseSession() as session:
+                user = session.query(User).filter_by(user_id=user_id).first()
             if user is None:
                 return error.error_authorization_fail()
             db_token = user.token
@@ -103,8 +104,8 @@ class User(Base):
 
     def check_password(self, user_id: str, password: str) -> Tuple[int, str]:
         try:
-            session = getDatabaseSession()
-            user = session.query(User).filter_by(user_id=user_id).first()
+            with getDatabaseSession() as session:
+                user = session.query(User).filter_by(user_id=user_id).first()
             if user is None:
                 return error.error_authorization_fail()
 
@@ -122,21 +123,18 @@ class User(Base):
             code, message = self.check_password(user_id, password)
             if code != 200:
                 return code, message, ""
-
             token = jwt_encode(user_id, terminal)
             session = getDatabaseSession()
             user = session.query(User).filter_by(user_id=user_id).first()
             if user is None:
                 return error.error_authorization_fail() + ("", )
-
             user.token = token
             user.terminal = terminal
             session.commit()
-
+            session.close()
         except Exception as e:
             session.rollback()
             return 530, str(e), ""
-
         return 200, "ok", token
 
     def logout(self, user_id: str, token: str) -> bool:
@@ -144,18 +142,16 @@ class User(Base):
             code, message = self.check_token(user_id, token)
             if code != 200:
                 return code, message
-
             terminal = "terminal_{}".format(str(time.time()))
             dummy_token = jwt_encode(user_id, terminal)
-
             session = getDatabaseSession()
             user = session.query(User).filter_by(user_id=user_id).first()
             if user is None:
                 return error.error_authorization_fail()
-
             user.token = dummy_token
             user.terminal = terminal
             session.commit()
+            session.close()
         except Exception as e:
             session.rollback()
             return 530, str(e)
@@ -167,15 +163,13 @@ class User(Base):
             code, message = self.check_password(user_id, password)
             if code != 200:
                 return code, message
-
             session = getDatabaseSession()
             user = session.query(User).filter_by(user_id=user_id).first()
             if user is None:
                 return error.error_authorization_fail()
-
             session.delete(user)
             session.commit()
-
+            session.close()
         except Exception as e:
             session.rollback()
             return 530, str(e)
@@ -187,24 +181,20 @@ class User(Base):
             code, message = self.check_password(user_id, old_password)
             if code != 200:
                 return code, message
-
             terminal = "terminal_{}".format(str(time.time()))
             token = jwt_encode(user_id, terminal)
-
             session = getDatabaseSession()
             user = session.query(User).filter_by(user_id=user_id).first()
             if user is None:
                 return error.error_authorization_fail()
-
             user.password = new_password
             user.token = token
             user.terminal = terminal
             session.commit()
-
+            session.close()
         except Exception as e:
             session.rollback()
             return 530, str(e)
-
         return 200, "ok"
     
 def getBalance(user_id: str) -> int:

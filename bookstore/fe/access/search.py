@@ -13,8 +13,8 @@ class Search:
         r = requests.post(url, json=json)
         return r.status_code, r.json().get("book_info")
     
-    # def fuzzy_search(self, term: str, store_id: str, page_size: int, page_id: int) -> Tuple[int, dict]:
-    #     json = {"term": term, "store_id": store_id, "page_size": page_size, "page_id": page_id}
-    #     url = urljoin(self.url_prefix, "fuzzy_search")
-    #     r = requests.post(url, json=json)
-    #     return r.status_code, r.json().get("rst")
+    def fuzzy_search(self, term: str, store_id: str, page_size: int, page_id: int) -> Tuple[int, dict]:
+        json = {"term": term, "store_id": store_id, "page_size": page_size, "page_id": page_id}
+        url = urljoin(self.url_prefix, "fuzzy_search")
+        r = requests.post(url, json=json)
+        return r.status_code, r.json().get("rst")

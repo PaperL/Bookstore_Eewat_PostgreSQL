@@ -10,7 +10,7 @@ class TestSearch:
     def pre_run_initialization(self):
         self.search = search.Search(conf.URL)
         book_db = book.BookDB()
-        self.books = book_db.get_book_info(0, 0)
+        self.books = book_db.get_book_info(0, 20)
         yield
 
     def test_book_info(self):

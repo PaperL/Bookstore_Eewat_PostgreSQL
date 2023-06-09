@@ -1,4 +1,5 @@
 import pytest
+from be.model.database import clearDatabaseSession
 
 from fe.test.gen_book_data import GenBook
 from fe.access.new_buyer import register_new_buyer
@@ -8,6 +9,7 @@ import uuid
 class TestQueryOrders:
     @pytest.fixture(autouse=True)
     def pre_run_initialization(self):
+        clearDatabaseSession()
         self.seller_id = "test_query_order_seller_id_{}".format(str(uuid.uuid1()))
         self.store_id = "test_query_order_store_id_{}".format(str(uuid.uuid1()))
         self.buyer_id = "test_query_order_buyer_id_{}".format(str(uuid.uuid1()))

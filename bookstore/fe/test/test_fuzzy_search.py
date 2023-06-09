@@ -1,4 +1,5 @@
 import pytest
+from be.model.database import clearDatabaseSession
 
 from fe.access import search
 from fe import conf
@@ -48,4 +49,6 @@ class TestSearch:
         assert rst is not None
         assert rst["total_results"] == 6
         assert len(rst["books"]) <= self.page_size
+
+        clearDatabaseSession()
 
